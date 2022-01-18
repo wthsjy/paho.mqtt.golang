@@ -8,7 +8,7 @@
  * The Eclipse Public License is available at
  *    https://www.eclipse.org/legal/epl-2.0/
  * and the Eclipse Distribution License is available at
- *   http://www.eclipse.org/org/documents/edl-v10.php.
+ *   http://www.eclipse.org/org/documents/edl-v10.php
  *
  * Contributors:
  *    Seth Hoenig
