@@ -51,14 +51,14 @@ type ConnectionLostHandler func(Client, error)
 type OnConnectHandler func(Client)
 
 // OnConnectFailHandler 链接失败回调
-type OnConnectFailHandler func(err error)
+type OnConnectFailHandler func(Client, *ClientOptions, error)
 
 // ReconnectHandler is invoked prior to reconnecting after
 // the initial connection is lost
 type ReconnectHandler func(Client, *ClientOptions)
 
 // ReconnectFailHandler 重连失败回调
-type ReconnectFailHandler func(err error)
+type ReconnectFailHandler func(Client, *ClientOptions, error)
 
 // ConnectionAttemptHandler is invoked prior to making the initial connection.
 type ConnectionAttemptHandler func(broker *url.URL, tlsCfg *tls.Config) *tls.Config
