@@ -20,11 +20,10 @@ package mqtt
 
 import (
 	"bytes"
+	"github.com/wthsjy/paho.mqtt.golang/packets"
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
 /**********************************************

@@ -17,13 +17,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	mqtt "github.com/wthsjy/paho.mqtt.golang"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
-
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 // Connect to the broker and publish a message periodically

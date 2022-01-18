@@ -20,9 +20,8 @@ package mqtt
 
 import (
 	"bytes"
+	"github.com/wthsjy/paho.mqtt.golang/packets"
 	"testing"
-
-	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
 func Test_NewPingReqMessage(t *testing.T) {
