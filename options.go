@@ -50,9 +50,15 @@ type ConnectionLostHandler func(Client, error)
 // at initial connection and on reconnection
 type OnConnectHandler func(Client)
 
+// OnConnectFailHandler 链接失败回调
+type OnConnectFailHandler func(err error)
+
 // ReconnectHandler is invoked prior to reconnecting after
 // the initial connection is lost
 type ReconnectHandler func(Client, *ClientOptions)
+
+// ReconnectFailHandler 重连失败回调
+type ReconnectFailHandler func(err error)
 
 // ConnectionAttemptHandler is invoked prior to making the initial connection.
 type ConnectionAttemptHandler func(broker *url.URL, tlsCfg *tls.Config) *tls.Config
@@ -93,8 +99,10 @@ type ClientOptions struct {
 	Store                   Store
 	DefaultPublishHandler   MessageHandler
 	OnConnect               OnConnectHandler
+	OnConnectFail           OnConnectFailHandler
 	OnConnectionLost        ConnectionLostHandler
 	OnReconnecting          ReconnectHandler
+	OnReconnectFail         ReconnectFailHandler
 	OnConnectAttempt        ConnectionAttemptHandler
 	WriteTimeout            time.Duration
 	MessageChannelDepth     uint

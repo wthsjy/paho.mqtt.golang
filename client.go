@@ -282,6 +282,10 @@ func (c *client) Connect() Token {
 		conn, rc, t.sessionPresent, err = c.attemptConnection()
 		if err != nil {
 			if c.options.ConnectRetry {
+				if c.options.OnConnectFail != nil {
+					go c.options.OnConnectFail(err)
+				}
+
 				DEBUG.Println(CLI, "Connect Failed, Sleeping for", int(c.options.ConnectRetryInterval.Seconds()), "seconds and will then retry, error:", err.Error())
 				time.Sleep(c.options.ConnectRetryInterval)
 
@@ -331,6 +335,9 @@ func (c *client) reconnect() {
 		conn, _, _, err = c.attemptConnection()
 		if err == nil {
 			break
+		}
+		if c.options.OnReconnectFail != nil {
+			go c.options.OnReconnectFail(err)
 		}
 		DEBUG.Println(CLI, "Reconnect failed, sleeping for", int(sleep.Seconds()), "seconds:", err)
 		time.Sleep(sleep)

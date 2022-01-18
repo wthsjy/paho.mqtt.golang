@@ -21,6 +21,8 @@ package mqtt
 import (
 	"errors"
 	"io"
+	"math"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -35,11 +37,7 @@ func keepalive(c *client, conn io.Writer) {
 	var checkInterval int64
 	var pingSent time.Time
 
-	if c.options.KeepAlive > 10 {
-		checkInterval = 5
-	} else {
-		checkInterval = c.options.KeepAlive / 2
-	}
+	checkInterval = 3
 
 	intervalTicker := time.NewTicker(time.Duration(checkInterval * int64(time.Second)))
 	defer intervalTicker.Stop()
@@ -54,7 +52,13 @@ func keepalive(c *client, conn io.Writer) {
 			lastReceived := c.lastReceived.Load().(time.Time)
 
 			DEBUG.Println(PNG, "ping check", time.Since(lastSent).Seconds())
-			if time.Since(lastSent) >= time.Duration(c.options.KeepAlive*int64(time.Second)) || time.Since(lastReceived) >= time.Duration(c.options.KeepAlive*int64(time.Second)) {
+
+			// 动态心跳机制
+			_keepAlive := c.options.KeepAlive
+			tmpCheckTs := math.Min(float64(_keepAlive), float64(_keepAlive-rand.Int63n(_keepAlive/2)))
+			divTs := time.Duration(int64(tmpCheckTs) * int64(time.Second))
+
+			if time.Since(lastSent) >= divTs || time.Since(lastReceived) >= divTs {
 				if atomic.LoadInt32(&c.pingOutstanding) == 0 {
 					DEBUG.Println(PNG, "keepalive sending ping")
 					ping := packets.NewControlPacket(packets.Pingreq).(*packets.PingreqPacket)
