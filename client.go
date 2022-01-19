@@ -124,9 +124,10 @@ type Client interface {
 // clients are safe for concurrent use by multiple
 // goroutines
 type client struct {
-	lastSent        atomic.Value // time.Time - the last time a packet was successfully sent to network
-	lastReceived    atomic.Value // time.Time - the last time a packet was successfully received from network
-	pingOutstanding int32        // set to 1 if a ping has been sent but response not ret received
+	startConnectingTime atomic.Value // time.Time 开始链接时间
+	lastSent            atomic.Value // time.Time - the last time a packet was successfully sent to network
+	lastReceived        atomic.Value // time.Time - the last time a packet was successfully received from network
+	pingOutstanding     int32        // set to 1 if a ping has been sent but response not ret received
 
 	status       uint32 // see const definitions at top of file for possible values
 	sync.RWMutex        // Protects the above two variables (note: atomic writes are also used somewhat inconsistently)
@@ -212,6 +213,11 @@ func (c *client) IsConnected() bool {
 	}
 }
 
+// 获取开始链接时间
+func (c *client) getStartConnectingTime() time.Time {
+	return c.startConnectingTime.Load().(time.Time)
+}
+
 // IsConnectionOpen return a bool signifying whether the client has an active
 // connection to mqtt broker, i.e not in disconnected or reconnect mode
 func (c *client) IsConnectionOpen() bool {
@@ -283,7 +289,7 @@ func (c *client) Connect() Token {
 		if err != nil {
 			if c.options.ConnectRetry {
 				if c.options.OnConnectFail != nil {
-					go c.options.OnConnectFail(c, &c.options, err)
+					go c.options.OnConnectFail(c, &c.options, err, time.Now().Sub(c.getStartConnectingTime()))
 				}
 
 				DEBUG.Println(CLI, "Connect Failed, Sleeping for", int(c.options.ConnectRetryInterval.Seconds()), "seconds and will then retry, error:", err.Error())
@@ -337,7 +343,7 @@ func (c *client) reconnect() {
 			break
 		}
 		if c.options.OnReconnectFail != nil {
-			go c.options.OnReconnectFail(c, &c.options, err)
+			go c.options.OnReconnectFail(c, &c.options, err, time.Now().Sub(c.getStartConnectingTime()))
 		}
 		DEBUG.Println(CLI, "Reconnect failed, sleeping for", int(sleep.Seconds()), "seconds:", err)
 		time.Sleep(sleep)
@@ -386,7 +392,7 @@ func (c *client) attemptConnection() (net.Conn, byte, bool, error) {
 		err            error
 		rc             byte
 	)
-
+	c.startConnectingTime.Store(time.Now())
 	c.optionsMu.Lock() // Protect c.options.Servers so that servers can be added in test cases
 	brokers := c.options.Servers
 	c.optionsMu.Unlock()
@@ -541,7 +547,7 @@ func (c *client) internalConnLost(err error) {
 				c.setConnected(disconnected)
 			}
 			if c.options.OnConnectionLost != nil {
-				go c.options.OnConnectionLost(c, err)
+				go c.options.OnConnectionLost(c, err, time.Now().Sub(c.getStartConnectingTime()))
 			}
 			DEBUG.Println(CLI, "internalConnLost complete")
 		}()
@@ -580,7 +586,7 @@ func (c *client) startCommsWorkers(conn net.Conn, inboundFromStore <-chan packet
 	c.setConnected(connected)
 	DEBUG.Println(CLI, "client is connected/reconnected")
 	if c.options.OnConnect != nil {
-		go c.options.OnConnect(c)
+		go c.options.OnConnect(c, time.Now().Sub(c.getStartConnectingTime()))
 	}
 
 	// c.oboundP and c.obound need to stay active for the life of the client because, depending upon the options,
@@ -1156,8 +1162,8 @@ func (c *client) OptionsReader() ClientOptionsReader {
 
 // DefaultConnectionLostHandler is a definition of a function that simply
 // reports to the DEBUG log the reason for the client losing a connection.
-func DefaultConnectionLostHandler(client Client, reason error) {
-	DEBUG.Println("Connection lost:", reason.Error())
+func DefaultConnectionLostHandler(client Client, reason error, ut time.Duration) {
+	DEBUG.Println("Connection lost:", reason.Error(), ut.Milliseconds())
 }
 
 // UpdateLastReceived - Will be called whenever a packet is received off the network
